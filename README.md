@@ -74,7 +74,7 @@ python main.py <path_to_video_file> --frame_rate <frame_rate>
 ### Example
 
 ```bash
-python main.py input_video.mp4 --frame_rate 2
+python main.py input_video.mp4
 python -m unittest discover -s tests
 ```
 
