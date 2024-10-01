@@ -100,5 +100,3 @@ Kinn Coelho Juliao <kinncj@gmail.com>
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 ```
 
-### Summary of Changes
-- Added a section for installing FFmpeg with the Homebrew command at the beginning of the setup instructions. This ensures users have all necessary dependencies for video processing.
