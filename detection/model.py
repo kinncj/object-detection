@@ -4,11 +4,10 @@
 # This software is licensed under the terms of the MIT License.
 # See the LICENSE file in the project root for license terms.
 from abc import ABC, abstractmethod
-import torch
 from transformers import DetrForObjectDetection, DetrImageProcessor
 from PIL import Image
 import cv2
-from config import device, RESTRICTED_CLASSES
+from config.config import device, RESTRICTED_CLASSES
 
 class ObjectDetectionModel(ABC):
     @abstractmethod

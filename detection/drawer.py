@@ -4,7 +4,7 @@
 # This software is licensed under the terms of the MIT License.
 # See the LICENSE file in the project root for license terms.
 import cv2
-from config import RESTRICTED_CLASSES, RESTRICTED_COLORS
+from config.config import RESTRICTED_CLASSES, RESTRICTED_COLORS
 
 class DetectionDrawer:
     def draw_detections(self, frame, labels, boxes, id2label):
@@ -27,8 +27,6 @@ class DetectionDrawer:
             cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
         return frame
-import cv2
-from config import RESTRICTED_CLASSES, RESTRICTED_COLORS
 
 class DetectionDrawer:
     def draw_detections(self, frame, labels, boxes, id2label):
