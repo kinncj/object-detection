@@ -103,7 +103,7 @@ class FrameProcessor:
             display_video (bool): Whether to display the video with detections.
         """
         if display_video:
-            cv2.imshow("Frame with Detections", frame)
+            cv2.imshow("ANALYZING FRAMES...", frame)
             cv2.waitKey(1)
 
     """
