@@ -50,10 +50,11 @@ class FrameProcessor:
 
         frames = []
         fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         print(f"Extracting frames every {frame_rate} milliseconds")
 
-        for frame_count in range(int(cap.get(cv2.CAP_PROP_FRAME_COUNT))):
+        for frame_count in range(frame_count):
             ret, frame = cap.read()
             if not ret:
                 break
@@ -125,6 +126,7 @@ class FrameProcessor:
             audio (AudioSegment): Audio to add to the video.
         """
         output_video_path = None
+        output_video_and_audio_path = None
         if store_video_path is not None and len(frames) > 0:
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             output_video_path = os.path.join(store_video_path, f"detected_frames_{timestamp}.mp4")
@@ -144,6 +146,7 @@ class FrameProcessor:
             if audio is not None:
                 # Save audio to a temporary file
                 temp_audio_path = os.path.join(store_video_path, f"temp_audio_{timestamp}.mp3")
+                output_video_and_audio_path = os.path.join(store_video_path, f"detected_frames_with_audio{timestamp}.mp4")
                 audio.export(temp_audio_path, format="mp3")
 
                 # Merge the video and audio using moviepy
@@ -152,12 +155,13 @@ class FrameProcessor:
                 video_with_audio = video_clip.set_audio(audio_clip)
 
                 # Write the final video with audio
-                video_with_audio.write_videofile(output_video_path, codec="libx264", audio_codec="aac")
+                video_with_audio.write_videofile(output_video_and_audio_path, audio_codec="aac", fps=fps)
 
                 # Clean up temporary files
                 os.remove(temp_audio_path)
+                print(f"Video with audio saved to: {output_video_and_audio_path}")
             else:
                 print("No audio provided. Video saved without audio.")
 
             cv2.destroyAllWindows()
-        return output_video_path
+        return output_video_path, output_video_and_audio_path

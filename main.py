@@ -31,23 +31,26 @@ def main(video_path, frame_rate, display_video, image_path, store_video_path):
     for idx, frame in enumerate(frames):
         processor.process_frame(frame, idx, display_video, image_path)
 
-    output_video_path = processor.compile_video(frames, store_video_path, fps, audio)
+    output_video_path, output_video_and_audio_path = processor.compile_video(frames, store_video_path, fps, audio)
 
     if display_video and output_video_path:
-        _open_video(output_video_path)
+        _open_video(output_video_path, output_video_and_audio_path)
 
-def _open_video(output_video_path):
-    print(f"Opening video: {output_video_path}")
+def _open_video(output_video_path, output_video_and_audio_path):
+    print(f"Opening video: {output_video_path} and {output_video_and_audio_path}")
     # Detect the operating system
     if platform.system() == 'Windows':
         print("Windows")
         os.startfile(output_video_path)  # Windows
+        os.startfile(output_video_and_audio_path)  # Windows
     elif platform.system() == 'Darwin':  # macOS
         print("macOS")
         subprocess.run(['open', output_video_path])
+        subprocess.run(['open', output_video_and_audio_path])
     else:  # Assume Linux or other Unix-like OS
         print("Linux")
         subprocess.run(['xdg-open', output_video_path])
+        subprocess.run(['xdg-open', output_video_and_audio_path])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Object Detection in Video")
