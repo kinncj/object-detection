@@ -64,6 +64,7 @@ To run the object detection on a video file, execute the script from the command
 
 ```bash
 python main.py <path_to_video_file> --frame_rate <frame_rate>
+python video_display.py <path_to_video_file>
 ```
 
 #### Arguments
@@ -75,6 +76,7 @@ python main.py <path_to_video_file> --frame_rate <frame_rate>
 
 ```bash
 python main.py input_video.mp4
+python video_display.py input_video.mp4
 python -m unittest discover -s tests
 ```
 
