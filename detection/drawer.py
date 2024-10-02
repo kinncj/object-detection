@@ -47,9 +47,9 @@ class DetectionDrawer:
         h, w, _ = frame.shape
         for i in range(len(labels)):
             label_id = labels[i]
-            label = id2label[label_id]
-            if label not in RESTRICTED_CLASSES.values():
-                continue
+            coco_label = id2label[label_id]
+            # if coco_label not in RESTRICTED_CLASSES.values():
+            #     continue
 
             box = boxes[i]
             x_center, y_center, box_width, box_height = box
@@ -58,8 +58,9 @@ class DetectionDrawer:
             x2 = int((x_center + box_width / 2) * w)
             y2 = int((y_center + box_height / 2) * h)
 
-            color = RESTRICTED_COLORS.get(label, (255, 255, 255))
+            color = RESTRICTED_COLORS.get(coco_label, (255, 255, 255))
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-            cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+            cv2.putText(frame, coco_label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+            cv2.putText(frame, str(label_id), (x1, y1 - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
         return frame

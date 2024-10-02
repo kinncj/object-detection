@@ -63,8 +63,7 @@ brew install ffmpeg
 To run the object detection on a video file, execute the script from the command line:
 
 ```bash
-python main.py <path_to_video_file> --frame_rate <frame_rate>
-python video_display.py <path_to_video_file>
+python main.py <path_to_video_file> --frame_rate=<frame_rate> --display_video=<display_video> --store_image_path=<image_path> --store_video_path=<video_path>
 ```
 
 #### Arguments
@@ -76,7 +75,11 @@ python video_display.py <path_to_video_file>
 
 ```bash
 python main.py input_video.mp4
-python video_display.py input_video.mp4
+python main.py input_video.mp4 --frame_rate=1
+python main.py input_video.mp4 --frame_rate=1 --display_video=True
+python main.py input_video.mp4 --frame_rate=1 --store_image_path=/tmp/ai_files
+python main.py input_video.mp4 --frame_rate=1 --store_video_path=/tmp/ai_files
+python main.py input_video.mp4 --frame_rate=1 --store_image_path=/tmp/ai_files --display_video=True
 python -m unittest discover -s tests
 ```
 

@@ -3,12 +3,7 @@
 #
 # This software is licensed under the terms of the MIT License.
 # See the LICENSE file in the project root for license terms.
-import os
 import torch
-
-# Configuration
-TEMP_DIR = "/tmp/ai_files"
-os.makedirs(TEMP_DIR, exist_ok=True)
 
 # Device configuration
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -20,7 +15,9 @@ RESTRICTED_CLASSES = {
     73: "laptop",
     72: "tv",
     76: "keyboard",
-    74: "mouse"
+    74: "mouse",
+    85: "clock",
+    62: "something",
 }
 
 RESTRICTED_COLORS = {
@@ -29,5 +26,6 @@ RESTRICTED_COLORS = {
     "laptop": (255, 255, 0),
     "tv": (0, 165, 255),
     "keyboard": (255, 0, 255),
-    "mouse": (255, 128, 0)
+    "mouse": (255, 128, 0),
+    "clock": (255, 128, 0)
 }

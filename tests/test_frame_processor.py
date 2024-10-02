@@ -14,9 +14,9 @@ class TestFrameProcessor(unittest.TestCase):
         model = MagicMock()
         drawer = MagicMock()
         processor = FrameProcessor(model, drawer)
-        frames = processor.extract_frames(self.video_path, frame_rate=1)
+        fps, frames, audio = processor.extract_video_fragments(self.video_path, frame_rate=1)
 
-        self.assertEqual(len(frames), 15)  # Check if at least one frame was extracted
+        self.assertEqual(len(frames), 428)  # Check if at least one frame was extracted
 
     @patch('cv2.VideoCapture')
     def test_raises_error_if_video_cannot_be_opened(self, mock_video_capture):
@@ -29,7 +29,7 @@ class TestFrameProcessor(unittest.TestCase):
         processor = FrameProcessor(model, drawer)
 
         with self.assertRaises(IOError):
-            processor.extract_frames("dummy_path", frame_rate=1)
+            processor.extract_video_fragments("dummy_path", frame_rate=1)
 
     @patch('cv2.imwrite')
     def test_saves_frame_correctly(self, mock_imwrite):
@@ -38,7 +38,7 @@ class TestFrameProcessor(unittest.TestCase):
         processor = FrameProcessor(model, drawer)
         frame = MagicMock()
 
-        processor._save_frame(frame, 1)
+        processor._save_frame(frame, 1, image_path="/tmp")
 
         self.assertTrue(mock_imwrite.called)
 
@@ -51,7 +51,7 @@ class TestFrameProcessor(unittest.TestCase):
         model.analyze_frame.return_value = (["label"], [[0.1, 0.1, 0.2, 0.2]])
         drawer.draw_detections.return_value = frame
 
-        processor.process_frame(frame, 1)
+        processor.process_frame(frame, 1, image_path="/tmp", display_video=False)
 
         self.assertTrue(mock_imwrite.called)
 
