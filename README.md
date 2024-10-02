@@ -80,6 +80,7 @@ python main.py input_video.mp4 --frame_rate=1 --display_video=True
 python main.py input_video.mp4 --frame_rate=1 --store_image_path=/tmp/ai_files
 python main.py input_video.mp4 --frame_rate=1 --store_video_path=/tmp/ai_files
 python main.py input_video.mp4 --frame_rate=1 --store_image_path=/tmp/ai_files --display_video=True
+python main.py ~/Movies/video_for_ai2.mp4 --frame_rate=1 --store_video_path=/tmp/ai_files  --display_video=True --store_image_path=/tmp/ai_files
 python -m unittest discover -s tests
 ```
 
