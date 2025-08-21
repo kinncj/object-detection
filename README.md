@@ -2,59 +2,136 @@
 
 ## Overview
 
-This project implements an object detection system using the DETR (DEtection TRansformer) model from Hugging Face's Transformers library. It processes video frames to detect specific restricted classes of objects and draws bounding boxes around them.
+This project implements an object detection system supporting both DETR (DEtection TRansformer) and YOLOv8 models. It processes video frames to detect specific restricted classes of objects and draws bounding boxes around them.
 
 ## Features
 
-- Detects specific restricted objects: person, cell phone, laptop, TV, keyboard, and mouse.
-- Draws bounding boxes around detected objects with different colors.
-- Saves processed frames with detections to a temporary directory.
+- **Multiple Model Support**: Choose between DETR (Facebook) and YOLOv8 (Ultralytics) models
+- **Restricted Object Detection**: Detects person, cell phone, laptop, TV, keyboard, mouse, and clock
+- **Video Processing**: Processes video frames with customizable frame rates
+- **Visualization**: Draws colored bounding boxes around detected objects
+- **Output Options**: Save processed frames and/or compiled videos
 
-## Requirements
+## Quick Start
 
-To run this project, you'll need the following Python packages:
+### 1. Install Conda (if not already installed)
 
-- `torch`
-- `transformers`
-- `Pillow`
-- `opencv-python`
-- `numpy`
+Choose one of these options:
+- **Miniconda (recommended)**: [Download here](https://docs.conda.io/en/latest/miniconda.html)
+- **Anaconda**: [Download here](https://www.anaconda.com/products/distribution)
+- **Mamba (faster alternative)**: [Install guide](https://mamba.readthedocs.io/)
 
-## Setup Instructions
-
-### Installing FFmpeg
-
-If you are using macOS, you can install FFmpeg using Homebrew. Open your terminal and run the following command:
+### 2. Set up the environment
 
 ```bash
-brew install ffmpeg
+# Clone the repository
+git clone <your-repo-url>
+cd object-detection
+
+# Run the setup script
+./setup.sh
 ```
 
-### Creating a Conda Environment
+### 3. Activate the environment
 
-1. **Create a new Conda environment:**
+```bash
+conda activate object-detection
+```
 
-   Open your terminal (or Anaconda Prompt) and run the following command:
+### 4. Run object detection
 
-   ```bash
-   conda create --name video_analyzer python=3.11
-   ```
+```bash
+# Using DETR model (default)
+python main.py path/to/your/video.mp4
 
-   Replace `video_analyzer` with your preferred environment name if needed.
+# Using YOLOv8 nano model (fastest)
+python main.py path/to/your/video.mp4 --model yolo --model_size n
 
-2. **Activate the Conda environment:**
+# Using YOLOv8 medium model (balanced speed/accuracy)
+python main.py path/to/your/video.mp4 --model yolo --model_size m
 
-   ```bash
-   conda activate video_analyzer
-   ```
+# Using YOLOv8 extra large model (most accurate)
+python main.py path/to/your/video.mp4 --model yolo --model_size x
 
-3. **Install required packages:**
+# With additional options
+python main.py path/to/your/video.mp4 \
+  --model yolo \
+  --model_size s \
+  --frame_rate 2 \
+  --display_video true \
+  --store_video_path output/ \
+  --store_image_path frames/
+```
 
-   Once the environment is activated, install the required packages using the `requirements.txt` file provided in the project:
+## Manual Setup (Alternative)
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+If you prefer to set up manually:
+
+```bash
+# Create conda environment
+conda env create -f environment.yml
+
+# Activate environment
+conda activate object-detection
+```
+
+## Command Line Options
+
+The main script supports the following arguments:
+
+```bash
+python main.py <video_path> [OPTIONS]
+
+Required:
+  video_path                    Path to the input video file
+
+Optional:
+  --model {detr,yolo}           Model to use (default: detr)
+  --model_size {n,s,m,l,x}      YOLOv8 model size (default: n, ignored for DETR)
+                                n=nano, s=small, m=medium, l=large, x=extra large
+  --frame_rate INT              Frame extraction rate per ms (default: 1)
+  --display_video BOOL          Display video after processing (default: False)
+  --store_video_path STR        Path to save processed video
+  --store_image_path STR        Path to save processed frames
+```
+
+## Development Commands
+
+Use the provided Makefile for common development tasks:
+
+```bash
+make help               # Show all available commands
+make test               # Run tests
+make format             # Format code with black
+make lint               # Run linting
+make clean              # Clean up temporary files
+make demo               # Run demo with test video
+
+# Run with different models
+make run-detr VIDEO_PATH=video.mp4              # DETR model
+make run-yolo VIDEO_PATH=video.mp4              # YOLOv8n (nano)
+make run-yolo VIDEO_PATH=video.mp4 MODEL_SIZE=s # YOLOv8s (small)
+make run-yolo-medium VIDEO_PATH=video.mp4       # YOLOv8m (medium)
+```
+
+## Models Supported
+
+### DETR (Default)
+- **Source**: Facebook Research
+- **Model**: `facebook/detr-resnet-50`
+- **Strengths**: High accuracy, research-grade
+- **Use case**: When accuracy is more important than speed
+
+### YOLOv8
+- **Source**: Ultralytics (via Hugging Face)
+- **Models Available**: 
+  - YOLOv8n (nano): Fastest, 6.2M parameters
+  - YOLOv8s (small): 11.2M parameters  
+  - YOLOv8m (medium): 25.9M parameters
+  - YOLOv8l (large): 43.7M parameters
+  - YOLOv8x (extra large): 68.2M parameters, most accurate
+- **Strengths**: Fast inference, real-time capable, multiple size options
+- **Use case**: When speed is important, or when you need to balance speed vs accuracy
 
 ## Usage
 

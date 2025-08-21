@@ -18,6 +18,71 @@ certs
 *secrets.yaml
 *secret.yml
 *secret.env
+
+# Python specific
+*.py[cod]
+*$py.class
+*.so
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Environments
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project specific
+output/
+frames/
+temp/
+*.mp4
+*.avi
+*.mov
+*.mkv
+!tests/test_video.mp4
+
+# Model cache
+.cache/
+models/
+*.pt
+*.pth
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Conda
+.conda/
 *secrets.env
 *telepresence.log
 .DS_Store

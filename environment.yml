@@ -1,0 +1,25 @@
+name: object-detection
+channels:
+  - conda-forge
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.11
+  - pytorch>=2.0
+  - torchvision
+  - torchaudio
+  - numpy
+  - opencv
+  - pillow
+  - pip
+  - pip:
+    - transformers>=4.20.0
+    - ultralytics>=8.0.0
+    - pydub>=0.25.0
+    - moviepy>=1.0.3
+    # Development dependencies
+    - pytest>=7.0.0
+    - pytest-cov>=4.0.0
+    - black>=22.0.0
+    - flake8>=5.0.0
+    - mypy>=1.0.0

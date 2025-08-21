@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "object-detection"
+version = "1.0.0"
+description = "Object detection system supporting DETR and YOLOv8 models"
+authors = [
+    {name = "Kinn Coelho Juliao", email = "kinncj@gmail.com"}
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.9"
+
+# Note: Dependencies are managed by conda (see environment.yml)
+# This file is kept for project metadata and tool configuration
+dependencies = []
+
+[project.optional-dependencies]
+dev = []
+
+[project.scripts]
+object-detection = "main:main"
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "--cov=. --cov-report=html --cov-report=term-missing --cov-exclude=setup.py"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Relaxed for ML project
+ignore_missing_imports = true  # Common for ML libraries
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]  # Black compatibility
+exclude = [".git", "__pycache__", "build", "dist", ".venv"]

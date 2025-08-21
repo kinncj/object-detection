@@ -1,3 +1,11 @@
+# This file is kept for compatibility but dependencies are managed by conda
+# See environment.yml for the actual dependency specification
+# 
+# To install dependencies, use:
+#   conda env create -f environment.yml
+#   conda activate object-detection
+#
+# Legacy pip requirements (use conda instead):
 torch
 transformers
 Pillow
@@ -6,3 +14,4 @@ numpy
 opencv-python
 pydub
 moviepy
+ultralytics

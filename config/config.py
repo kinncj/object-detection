@@ -27,5 +27,6 @@ RESTRICTED_COLORS = {
     "tv": (0, 165, 255),
     "keyboard": (255, 0, 255),
     "mouse": (255, 128, 0),
-    "clock": (255, 128, 0)
+    "clock": (255, 128, 0),
+    "something": (128, 128, 128)
 }
