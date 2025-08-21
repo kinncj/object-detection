@@ -1,17 +1,32 @@
-# This file is kept for compatibility but dependencies are managed by conda
-# See environment.yml for the actual dependency specification
+# Object Detection Project Dependencies
 # 
-# To install dependencies, use:
+# Install using pip:
+#   pip install -r requirements.txt
+#
+# For conda environment (recommended):
 #   conda env create -f environment.yml
 #   conda activate object-detection
-#
-# Legacy pip requirements (use conda instead):
-torch
-transformers
-Pillow
-opencv-python
-numpy
-opencv-python
-pydub
-moviepy
-ultralytics
+
+# Core machine learning libraries
+torch>=2.0.0
+transformers>=4.21.0
+ultralytics>=8.0.0
+
+# Computer vision and image processing
+opencv-python>=4.8.0
+Pillow>=9.0.0
+numpy>=1.21.0
+
+# Audio and video processing
+moviepy>=1.0.3
+pydub>=0.25.1
+
+# Development and testing
+pytest>=7.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0
+
+# Optional dependencies for documentation
+sphinx>=5.0.0
+sphinx-rtd-theme>=1.0.0
