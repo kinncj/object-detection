@@ -4,7 +4,7 @@ Welcome to the Object Detection project documentation. This directory contains c
 
 ## 📁 Documentation Structure
 
-- **[README.md](README.md)** - Main project documentation and getting started guide
+- **[README.md](../README.md)** - Main project documentation and getting started guide
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and design decisions
 - **[API.md](API.md)** - API reference and class documentation
 - **[MODELS.md](MODELS.md)** - Supported models and their configurations

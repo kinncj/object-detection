@@ -21,7 +21,7 @@ def test_model_creation():
     try:
         # Test DETR model
         print("  Creating DETR model...")
-        detr_model = create_model("detr")
+        detr_model = ModelFactory.create_model("detr")
         print("  ✅ DETR model created successfully")
         
         if hasattr(detr_model, 'get_model_info'):
@@ -31,7 +31,7 @@ def test_model_creation():
         # Test YOLOv8 models
         for size in ['n', 's']:  # Test nano and small only to save time
             print(f"  Creating YOLOv8{size.upper()} model...")
-            yolo_model = create_model("yolo", model_size=size)
+            yolo_model = ModelFactory.create_model("yolo", model_size=size)
             print(f"  ✅ YOLOv8{size.upper()} model created successfully")
             
             if hasattr(yolo_model, 'get_model_info'):
@@ -55,15 +55,15 @@ def test_dummy_inference():
         
         # Test DETR
         print("  Testing DETR inference...")
-        detr_model = create_model("detr")
-        labels, boxes = detr_model.analyze_frame(dummy_frame)
-        print(f"  ✅ DETR inference completed. Found {len(labels)} detections")
+        detr_model = ModelFactory.create_model("detr")
+        detections = detr_model.detect_objects(dummy_frame)
+        print(f"  ✅ DETR inference completed. Found {len(detections.detections)} detections")
         
         # Test YOLOv8 nano (fastest for testing)
         print("  Testing YOLOv8n inference...")
-        yolo_model = create_model("yolo", model_size="n")
-        labels, boxes = yolo_model.analyze_frame(dummy_frame)
-        print(f"  ✅ YOLOv8n inference completed. Found {len(labels)} detections")
+        yolo_model = ModelFactory.create_model("yolo", model_size="n")
+        detections = yolo_model.detect_objects(dummy_frame)
+        print(f"  ✅ YOLOv8n inference completed. Found {len(detections.detections)} detections")
         
         print("🎉 All inference tests completed successfully!")
         return True
