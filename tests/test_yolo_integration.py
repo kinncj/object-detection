@@ -6,11 +6,13 @@ Simple test script to verify YOLOv8 and DETR models work correctly.
 import sys
 import os
 import numpy as np
+from pathlib import Path
 
 # Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
-from detection.model import create_model
+from models.factory import ModelFactory
 
 def test_model_creation():
     """Test that models can be created successfully."""

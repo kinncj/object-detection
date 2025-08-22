@@ -2,15 +2,23 @@
 
 # Simple test without moviepy dependency
 
+import sys
+import os
+from pathlib import Path
+
+# Add the project root to the Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 import cv2
-from detection.model import create_model
+from models.factory import ModelFactory
 
 def simple_video_test(video_path, model_type='yolo', model_size='n'):
     """Simple video test using only OpenCV"""
     print(f"Testing {model_type} model on video: {video_path}")
     
     # Create model
-    model = create_model(model_type, model_size)
+    model = ModelFactory.create_model(model_type, model_size=model_size)
     print(f"Model created: {model.__class__.__name__}")
     
     # Open video
@@ -39,18 +47,17 @@ def simple_video_test(video_path, model_type='yolo', model_size='n'):
             break
             
         # Analyze frame
-        labels, boxes = model.analyze_frame(frame)
-        detections = len(labels)
-        total_detections += detections
+        detections = model.detect_objects(frame)
+        detection_count = len(detections.detections)
+        total_detections += detection_count
         processed_frames += 1
         
         timestamp = i / fps
-        print(f"Frame {i:4d} ({timestamp:6.2f}s): {detections} detections")
+        print(f"Frame {i:4d} ({timestamp:6.2f}s): {detection_count} detections")
         
-        if detections > 0:
-            for j, (label, box) in enumerate(zip(labels, boxes)):
-                class_name = model.id2label.get(label, f"Class {label}")
-                print(f"  - {class_name}: {box}")
+        if detection_count > 0:
+            for detection in detections.detections:
+                print(f"  - {detection.class_name}: confidence={detection.confidence:.2f}")
     
     cap.release()
     
