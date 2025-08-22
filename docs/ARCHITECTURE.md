@@ -1,6 +1,355 @@
-# System Architecture
+# Architecture Documentation
 
-This document describes the architecture and design principles of the Object Detection application.
+This document provides a comprehensive overview of the Object Detection Application's architecture, including class diagrams, system architecture, and data flow.
+
+## System Overview
+
+The Object Detection Application is built with a modular, extensible architecture that supports multiple detection models and provides clean separation of concerns.
+
+## Class Architecture
+
+```mermaid
+classDiagram
+    %% Base Classes and DTOs
+    class ObjectDetectionModel {
+        <<abstract>>
+        +detect_objects(frame) FrameDetections
+        +get_model_info() Dict
+        +model_name: str
+        +supported_classes: Dict
+        +is_class_supported(class_id) bool
+    }
+    
+    class BoundingBox {
+        +x: float
+        +y: float
+        +width: float
+        +height: float
+        +confidence: float
+        +to_xyxy(width, height) Tuple
+        +from_xyxy(x1, y1, x2, y2, width, height) BoundingBox
+    }
+    
+    class DetectionResult {
+        +class_id: int
+        +class_name: str
+        +bbox: BoundingBox
+        +confidence: float
+        +model_type: str
+    }
+    
+    class FrameDetections {
+        +frame_id: int
+        +detections: List[DetectionResult]
+        +processing_time: float
+        +model_info: Dict
+        +detection_count: int
+        +get_detections_by_class(class_name) List[DetectionResult]
+    }
+    
+    %% Model Implementations
+    class DETRModel {
+        -confidence_threshold: float
+        -model: DetrForObjectDetection
+        -image_processor: DetrImageProcessor
+        -id2label: Dict
+        +detect_objects(frame) FrameDetections
+        +get_model_info() Dict
+        +model_name: str
+        +supported_classes: Dict
+    }
+    
+    class YOLOv8Model {
+        -model_size: str
+        -confidence_threshold: float
+        -model: YOLO
+        -class_names: Dict
+        -yolo_to_detr: Dict
+        +detect_objects(frame) FrameDetections
+        +get_model_info() Dict
+        +model_name: str
+        +supported_classes: Dict
+    }
+    
+    %% Factory Pattern
+    class ModelFactory {
+        +SUPPORTED_MODELS: Dict
+        +create_model(model_type, model_size, confidence_threshold) ObjectDetectionModel
+        +get_supported_models() Dict
+        +create_default_model() ObjectDetectionModel
+    }
+    
+    %% Visualization
+    class DetectionDrawer {
+        -box_color: Tuple
+        -text_color: Tuple
+        -box_thickness: int
+        -font_scale: float
+        +draw_detections(image, detections) ndarray
+        +draw_frame_info(image, detections, position) ndarray
+        -_draw_single_detection() ndarray
+        -_draw_text_block() ndarray
+    }
+    
+    %% Relationships
+    ObjectDetectionModel <|-- DETRModel
+    ObjectDetectionModel <|-- YOLOv8Model
+    ModelFactory ..> ObjectDetectionModel : creates
+    DetectionResult o-- BoundingBox
+    FrameDetections o-- DetectionResult
+    ObjectDetectionModel ..> FrameDetections : produces
+    DetectionDrawer ..> FrameDetections : visualizes
+```
+
+## System Architecture
+
+```mermaid
+flowchart TB
+    subgraph "Frontend Layer"
+        CLI[CLI Interface]
+        VI[Video Input]
+    end
+    
+    subgraph "Core Processing"
+        MA[Main Application]
+        DD[Detection Drawer]
+        MF[Model Factory]
+    end
+    
+    subgraph "Model Layer"
+        YM[YOLOv8 Model]
+        DM[DETR Model]
+        BM[Base Model Interface]
+    end
+    
+    subgraph "Storage Layer"
+        VO[Video Output]
+        ST[Statistics]
+    end
+
+    CLI --> MA
+    VI --> MA
+    MA --> MF
+    MA --> DD
+    MF --> YM
+    MF --> DM
+    YM --> BM
+    DM --> BM
+    MA --> VO
+    MA --> ST
+    
+    style MA fill:#ffeb3b
+    style MF fill:#4caf50
+    style YM fill:#2196f3
+    style DM fill:#9c27b0
+```
+
+## Data Flow Diagram
+
+```mermaid
+flowchart TD
+    A[Video Input] --> B[Frame Extraction]
+    B --> C[Model Factory]
+    C --> D{Model Type?}
+    D -->|YOLO| E[YOLOv8 Model]
+    D -->|DETR| F[DETR Model]
+    E --> G[Object Detection]
+    F --> G
+    G --> H[Detection Results]
+    H --> I[Detection Drawer]
+    I --> J[Annotated Frame]
+    J --> K[Video Writer]
+    K --> L[Output Video]
+    
+    G --> M[Statistics]
+    M --> N[Performance Metrics]
+    
+    style A fill:#e1f5fe
+    style L fill:#e8f5e8
+    style G fill:#fff3e0
+    style I fill:#f3e5f5
+```
+
+## Model Class Hierarchy
+
+```mermaid
+classDiagram
+    class ObjectDetectionModel {
+        <<abstract>>
+        +detect_objects(frame)*
+        +get_model_info()*
+        +model_name*
+        +supported_classes*
+    }
+    
+    class DETRModel {
+        +detect_objects(frame) FrameDetections
+        +get_model_info() Dict
+        +model_name "DETR ResNet-50"
+        +supported_classes Dict
+        -_load_model()
+    }
+    
+    class YOLOv8Model {
+        +detect_objects(frame) FrameDetections
+        +get_model_info() Dict
+        +model_name "YOLOv8{size}"
+        +supported_classes Dict
+        -_load_model()
+        -_create_class_mapping()
+        -_validate_model_size()
+    }
+    
+    ObjectDetectionModel <|-- DETRModel : implements
+    ObjectDetectionModel <|-- YOLOv8Model : implements
+    
+    note for ObjectDetectionModel "Abstract base class defining\nthe interface for all detection models"
+    note for DETRModel "Facebook DETR with\nResNet-50 backbone"
+    note for YOLOv8Model "Ultralytics YOLOv8\nwith multiple size variants"
+```
+
+## Processing Pipeline
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant CLI
+    participant MainApp
+    participant ModelFactory
+    participant Model
+    participant Drawer
+    participant VideoWriter
+    
+    User->>CLI: python main.py video.mp4
+    CLI->>MainApp: parse_arguments()
+    MainApp->>ModelFactory: create_model(type, size)
+    ModelFactory->>Model: __init__(config)
+    Model-->>MainApp: model_instance
+    
+    MainApp->>VideoWriter: setup_output_video()
+    
+    loop For each frame
+        MainApp->>Model: detect_objects(frame)
+        Model-->>MainApp: FrameDetections
+        MainApp->>Drawer: draw_detections(frame, detections)
+        Drawer-->>MainApp: annotated_frame
+        MainApp->>VideoWriter: write_frame(annotated_frame)
+    end
+    
+    MainApp-->>User: Processing complete
+```
+
+## Component Interaction
+
+```mermaid
+flowchart TB
+    subgraph "Input Layer"
+        VI[Video Input]
+        CLI[Command Line Interface]
+    end
+    
+    subgraph "Application Layer"
+        MA[Main Application]
+        AP[Argument Parser]
+        VV[Video Validator]
+    end
+    
+    subgraph "Processing Layer"
+        MF[Model Factory]
+        DD[Detection Drawer]
+        FP[Frame Processor]
+    end
+    
+    subgraph "Model Layer"
+        YM[YOLOv8 Model]
+        DM[DETR Model]
+        BM[Base Model Interface]
+    end
+    
+    subgraph "Output Layer"
+        VW[Video Writer]
+        VO[Video Output]
+        ST[Statistics]
+    end
+    
+    CLI --> AP
+    VI --> VV
+    AP --> MA
+    VV --> MA
+    MA --> MF
+    MA --> DD
+    MA --> FP
+    MF --> YM
+    MF --> DM
+    YM --> BM
+    DM --> BM
+    FP --> VW
+    DD --> VW
+    VW --> VO
+    FP --> ST
+    
+    style MA fill:#ffeb3b
+    style MF fill:#4caf50
+    style YM fill:#2196f3
+    style DM fill:#9c27b0
+```
+
+## Design Patterns Used
+
+### 1. Factory Pattern
+- **ModelFactory**: Creates appropriate model instances based on configuration
+- **Benefits**: Encapsulates model creation logic, easy to add new models
+
+### 2. Strategy Pattern  
+- **ObjectDetectionModel**: Abstract interface for detection strategies
+- **DETRModel/YOLOv8Model**: Concrete implementations
+- **Benefits**: Interchangeable algorithms, runtime model selection
+
+### 3. Data Transfer Object (DTO)
+- **BoundingBox**: Encapsulates bounding box data
+- **DetectionResult**: Encapsulates single detection data
+- **FrameDetections**: Encapsulates frame-level detection data
+- **Benefits**: Type safety, data validation, clear interfaces
+
+### 4. Template Method
+- **ObjectDetectionModel.detect_objects()**: Defines detection interface
+- **Benefits**: Consistent behavior across implementations
+
+## Performance Considerations
+
+### Model Performance Characteristics
+| Model | Inference Time | Memory Usage | Accuracy | Best Use Case |
+|-------|----------------|--------------|----------|---------------|
+| YOLOv8n | ~1ms | 6MB | 37.3 mAP | Real-time processing |
+| YOLOv8s | ~2ms | 22MB | 44.9 mAP | Balanced performance |
+| YOLOv8m | ~3ms | 52MB | 50.2 mAP | High accuracy needs |
+| YOLOv8l | ~4ms | 87MB | 52.9 mAP | Production accuracy |
+| YOLOv8x | ~6ms | 136MB | 53.9 mAP | Maximum accuracy |
+| DETR | ~15ms | 159MB | 42.0 mAP | Research applications |
+
+### Optimization Strategies
+1. **GPU Acceleration**: Automatic CUDA detection and usage
+2. **Batch Processing**: Frame-level processing optimization
+3. **Memory Management**: Efficient tensor operations
+4. **I/O Optimization**: Streaming video processing
+
+## Extension Points
+
+The architecture supports easy extension through:
+
+1. **New Models**: Implement `ObjectDetectionModel` interface
+2. **New Visualizations**: Extend `DetectionDrawer` methods
+3. **New Output Formats**: Add new video writers/processors
+4. **New Metrics**: Extend statistics collection
+
+## Security Considerations
+
+1. **Input Validation**: All user inputs are validated
+2. **File System Security**: Safe file path handling
+3. **Memory Safety**: Proper tensor memory management
+4. **Error Handling**: Graceful failure modes
+
+This architecture provides a solid foundation for object detection applications while maintaining flexibility for future enhancements and extensions.
 
 ## 🏗️ Overview
 

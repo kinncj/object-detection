@@ -1,185 +1,195 @@
-# Object Detection in Video
+# Object Detection Application
 
-## Overview
+A modern, high-performance object detection application supporting multiple state-of-the-art models including YOLOv8 and DETR. This application processes video files to detect and annotate objects with bounding boxes, providing real-time visualization and comprehensive analytics.
 
-This project implements an object detection system supporting both DETR (DEtection TRansformer) and YOLOv8 models. It processes video frames to detect specific restricted classes of objects and draws bounding boxes around them.
+## 🚀 Features
 
-## Features
+- **Multiple Model Support**: YOLOv8 (nano to extra-large) and DETR models
+- **Real-time Processing**: Efficient video frame processing with live visualization
+- **Flexible Output**: Generate annotated videos with customizable overlays
+- **Production Ready**: Clean architecture with proper error handling and logging
+- **Easy to Use**: Simple CLI interface with sensible defaults
 
-- **Multiple Model Support**: Choose between DETR (Facebook) and YOLOv8 (Ultralytics) models
-- **Restricted Object Detection**: Detects person, cell phone, laptop, TV, keyboard, mouse, and clock
-- **Video Processing**: Processes video frames with customizable frame rates
-- **Visualization**: Draws colored bounding boxes around detected objects
-- **Output Options**: Save processed frames and/or compiled videos
+## 📋 Requirements
 
-## Quick Start
+- Python 3.8+
+- CUDA-compatible GPU (recommended for best performance)
+- 4GB+ RAM
+- OpenCV-compatible video formats (MP4, AVI, MOV, etc.)
 
-### 1. Install Conda (if not already installed)
+## 🛠️ Installation
 
-Choose one of these options:
-- **Miniconda (recommended)**: [Download here](https://docs.conda.io/en/latest/miniconda.html)
-- **Anaconda**: [Download here](https://www.anaconda.com/products/distribution)
-- **Mamba (faster alternative)**: [Install guide](https://mamba.readthedocs.io/)
-
-### 2. Set up the environment
+### Option 1: Using Conda (Recommended)
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/kinncj/object-detection.git
 cd object-detection
 
-# Run the setup script
-./setup.sh
-```
-
-### 3. Activate the environment
-
-```bash
-conda activate object-detection
-```
-
-### 4. Run object detection
-
-```bash
-# Using DETR model (default)
-python main.py path/to/your/video.mp4
-
-# Using YOLOv8 nano model (fastest)
-python main.py path/to/your/video.mp4 --model yolo --model_size n
-
-# Using YOLOv8 medium model (balanced speed/accuracy)
-python main.py path/to/your/video.mp4 --model yolo --model_size m
-
-# Using YOLOv8 extra large model (most accurate)
-python main.py path/to/your/video.mp4 --model yolo --model_size x
-
-# With additional options
-python main.py path/to/your/video.mp4 \
-  --model yolo \
-  --model_size s \
-  --frame_rate 2 \
-  --display_video true \
-  --store_video_path output/ \
-  --store_image_path frames/
-```
-
-## Manual Setup (Alternative)
-
-If you prefer to set up manually:
-
-```bash
-# Create conda environment
+# Create and activate conda environment
 conda env create -f environment.yml
-
-# Activate environment
 conda activate object-detection
 ```
 
-## Command Line Options
-
-The main script supports the following arguments:
+### Option 2: Using pip
 
 ```bash
-python main.py <video_path> [OPTIONS]
+# Clone the repository
+git clone https://github.com/kinncj/object-detection.git
+cd object-detection
 
-Required:
-  video_path                    Path to the input video file
-
-Optional:
-  --model {detr,yolo}           Model to use (default: detr)
-  --model_size {n,s,m,l,x}      YOLOv8 model size (default: n, ignored for DETR)
-                                n=nano, s=small, m=medium, l=large, x=extra large
-  --frame_rate INT              Frame extraction rate per ms (default: 1)
-  --display_video BOOL          Display video after processing (default: False)
-  --store_video_path STR        Path to save processed video
-  --store_image_path STR        Path to save processed frames
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-## Development Commands
+## 🎯 Quick Start
 
-Use the provided Makefile for common development tasks:
+### Basic Usage
 
 ```bash
-make help               # Show all available commands
-make test               # Run tests
-make format             # Format code with black
-make lint               # Run linting
-make clean              # Clean up temporary files
-make demo               # Run demo with test video
+# Detect objects in a video using YOLOv8 nano (fastest)
+python main.py your_video.mp4
 
-# Run with different models
-make run-detr VIDEO_PATH=video.mp4              # DETR model
-make run-yolo VIDEO_PATH=video.mp4              # YOLOv8n (nano)
-make run-yolo VIDEO_PATH=video.mp4 MODEL_SIZE=s # YOLOv8s (small)
-make run-yolo-medium VIDEO_PATH=video.mp4       # YOLOv8m (medium)
+# Use a larger, more accurate model
+python main.py your_video.mp4 --model yolo --model-size l
+
+# Use DETR model with custom confidence threshold
+python main.py your_video.mp4 --model detr --confidence 0.8
+
+# Display video during processing
+python main.py your_video.mp4 --display --info
 ```
 
-## Models Supported
-
-### DETR (Default)
-- **Source**: Facebook Research
-- **Model**: `facebook/detr-resnet-50`
-- **Strengths**: High accuracy, research-grade
-- **Use case**: When accuracy is more important than speed
-
-### YOLOv8
-- **Source**: Ultralytics (via Hugging Face)
-- **Models Available**: 
-  - YOLOv8n (nano): Fastest, 6.2M parameters
-  - YOLOv8s (small): 11.2M parameters  
-  - YOLOv8m (medium): 25.9M parameters
-  - YOLOv8l (large): 43.7M parameters
-  - YOLOv8x (extra large): 68.2M parameters, most accurate
-- **Strengths**: Fast inference, real-time capable, multiple size options
-- **Use case**: When speed is important, or when you need to balance speed vs accuracy
-
-## Usage
-
-### Running the Script
-
-To run the object detection on a video file, execute the script from the command line:
+### Advanced Examples
 
 ```bash
-python main.py <path_to_video_file> --frame_rate=<frame_rate> --display_video=<display_video> --store_image_path=<image_path> --store_video_path=<video_path>
+# High-accuracy detection with custom output directory
+python main.py video.mp4 --model yolo --model-size x --confidence 0.6 --output ./results/
+
+# Real-time display with frame information overlay
+python main.py video.mp4 --display --info --output ./live_demo/
 ```
 
-#### Arguments
+## 📊 Model Comparison
 
-- `<path_to_video_file>`: The path to the input video file.
-- `--frame_rate`: (Optional) The rate at which frames are extracted from the video. The default value is 1 frame per second.
+| Model | Size | Speed | Accuracy | Use Case |
+|-------|------|-------|----------|----------|
+| YOLOv8n | ~6MB | ⚡⚡⚡⚡⚡ | ⭐⭐⭐ | Real-time, mobile |
+| YOLOv8s | ~22MB | ⚡⚡⚡⚡ | ⭐⭐⭐⭐ | Balanced performance |
+| YOLOv8m | ~52MB | ⚡⚡⚡ | ⭐⭐⭐⭐⭐ | High accuracy |
+| YOLOv8l | ~87MB | ⚡⚡ | ⭐⭐⭐⭐⭐ | Production accuracy |
+| YOLOv8x | ~136MB | ⚡ | ⭐⭐⭐⭐⭐ | Maximum accuracy |
+| DETR | ~159MB | ⚡ | ⭐⭐⭐⭐ | Research, transformers |
 
-### Example
+## 🎮 Command Line Options
+
+```
+python main.py <video_path> [options]
+
+Required Arguments:
+  video_path              Path to the input video file
+
+Model Configuration:
+  --model {yolo,detr}     Object detection model (default: yolo)
+  --model-size {n,s,m,l,x} Model size for YOLO (default: n)
+  --confidence FLOAT      Confidence threshold 0-1 (default: 0.5)
+
+Output Configuration:
+  --output DIR           Output directory (default: ./output)
+  --display              Display video during processing
+  --info                 Show frame info overlay
+```
+
+## 🏗️ Architecture
+
+The application follows a clean, modular architecture:
+
+```
+object-detection/
+├── models/                 # Model implementations
+│   ├── base.py            # Abstract base classes and DTOs
+│   ├── detr_model.py      # DETR implementation
+│   ├── yolo_model.py      # YOLOv8 implementation
+│   └── factory.py         # Model factory
+├── detection/             # Detection utilities
+│   └── drawer.py          # Visualization and drawing
+├── config/                # Configuration
+│   └── config.py          # Settings and constants
+├── docs/                  # Documentation
+└── tests/                 # Test suite
+```
+
+## 🔧 Configuration
+
+### Supported Object Classes
+
+The application detects the following object classes:
+- Person
+- Laptop
+- Cell phone
+- TV/Monitor
+- Keyboard
+- Mouse
+- Clock
+
+### Environment Variables
 
 ```bash
-python main.py input_video.mp4
-python main.py input_video.mp4 --frame_rate=1
-python main.py input_video.mp4 --frame_rate=1 --display_video=True
-python main.py input_video.mp4 --frame_rate=1 --store_image_path=/tmp/ai_files
-python main.py input_video.mp4 --frame_rate=1 --store_video_path=/tmp/ai_files
-python main.py input_video.mp4 --frame_rate=1 --store_image_path=/tmp/ai_files --display_video=True
-python main.py ~/Movies/video_for_ai2.mp4 --frame_rate=1 --store_video_path=/tmp/ai_files  --display_video=True --store_image_path=/tmp/ai_files
-python -m unittest discover -s tests
+# Optional: Set CUDA device
+export CUDA_VISIBLE_DEVICES=0
+
+# Optional: Set torch device
+export TORCH_DEVICE=cuda:0
 ```
 
-This command will process `input_video.mp4`, extracting 2 frames per second. The output frames with detected objects will be saved in the temporary directory `/tmp/ai_files`.
+## 📈 Performance Tips
 
-### Output
+1. **GPU Acceleration**: Ensure CUDA is properly installed for GPU acceleration
+2. **Model Selection**: Use YOLOv8n for real-time applications, YOLOv8l+ for accuracy
+3. **Batch Processing**: Process multiple videos sequentially for efficiency
+4. **Memory Management**: Close display windows when processing large videos
 
-Processed frames will be saved in the specified temporary directory with filenames in the format `detected_frame_<index>_<timestamp>.png`, where `<index>` is the frame index and `<timestamp>` indicates when the frame was processed.
+## 🧪 Testing
 
-## Code Structure
+```bash
+# Run the test suite
+python -m pytest tests/
 
-- `detection_model.py`: Contains the implementation of the DETR model and other related classes for object detection.
-- `frame_processor.py`: Handles the extraction and processing of video frames.
-- `detection_drawer.py`: Manages the drawing of bounding boxes and labels on the video frames.
-- `main.py`: The entry point of the application.
-
-## Author
-
-Kinn Coelho Juliao <kinncj@gmail.com>
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+# Test specific model
+python test_simple.py
 ```
 
+## 📚 Documentation
+
+- [API Documentation](docs/API.md)
+- [Model Details](docs/MODELS.md)
+- [Architecture Guide](docs/ARCHITECTURE.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Ultralytics](https://github.com/ultralytics/ultralytics) for YOLOv8
+- [Hugging Face](https://huggingface.co/) for DETR model and transformers
+- [OpenCV](https://opencv.org/) for computer vision utilities
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/kinncj/object-detection/issues)
+- **Documentation**: [Project Wiki](https://github.com/kinncj/object-detection/wiki)
+- **Email**: kinncj@gmail.com
+
+---
+
+⭐ **Star this repository if you found it helpful!**

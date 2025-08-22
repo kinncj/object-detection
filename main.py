@@ -1,81 +1,289 @@
+#!/usr/bin/env python3
+"""
+Object Detection Application.
+
+This application performs real-time object detection on video files using
+state-of-the-art models like YOLOv8 and DETR. It processes video frames,
+detects objects, and outputs annotated videos with bounding boxes.
+
+Usage:
+    python main.py <video_path> [options]
+
+Example:
+    python main.py video.mp4 --model yolo --model-size n --output ./results/
+"""
 # Copyright (c) 2024 Kinn Coelho Juliao <kinncj@gmail.com>
 # All rights reserved.
 #
 # This software is licensed under the terms of the MIT License.
 # See the LICENSE file in the project root for license terms.
+
 import argparse
 import os
-import platform
-import subprocess
+import sys
+import time
+from pathlib import Path
+from typing import Optional
 
-from detection.model import create_model
+import cv2
+import numpy as np
+
+from models import ModelFactory
 from detection.drawer import DetectionDrawer
-from processor.frame_processor import FrameProcessor
 
-def main(video_path, frame_rate, display_video, image_path, store_video_path, model_type, model_size):
+
+def create_argument_parser() -> argparse.ArgumentParser:
     """
-    Main function to perform object detection on a video.
+    Create and configure the argument parser.
+    
+    Returns:
+        argparse.ArgumentParser: Configured argument parser
+    """
+    parser = argparse.ArgumentParser(
+        description="Object Detection Application",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s video.mp4
+  %(prog)s video.mp4 --model yolo --model-size s
+  %(prog)s video.mp4 --model detr --confidence 0.8
+  %(prog)s video.mp4 --output ./results/ --display
+        """
+    )
+    
+    # Required arguments
+    parser.add_argument(
+        "video_path",
+        help="Path to the input video file"
+    )
+    
+    # Model configuration
+    parser.add_argument(
+        "--model",
+        choices=["yolo", "detr"],
+        default="yolo",
+        help="Object detection model to use (default: yolo)"
+    )
+    
+    parser.add_argument(
+        "--model-size", 
+        choices=["n", "s", "m", "l", "x"],
+        default="n",
+        help="Model size for YOLO (n=nano, s=small, m=medium, l=large, x=extra-large, default: n)"
+    )
+    
+    parser.add_argument(
+        "--confidence",
+        type=float,
+        default=0.5,
+        help="Confidence threshold for detections (default: 0.5)"
+    )
+    
+    # Output configuration
+    parser.add_argument(
+        "--output", 
+        default="./output",
+        help="Output directory for processed video (default: ./output)"
+    )
+    
+    parser.add_argument(
+        "--display",
+        action="store_true",
+        help="Display video during processing"
+    )
+    
+    parser.add_argument(
+        "--info",
+        action="store_true", 
+        help="Show frame info overlay"
+    )
+    
+    return parser
 
+
+def validate_arguments(args: argparse.Namespace) -> None:
+    """
+    Validate command line arguments.
+    
     Args:
-        video_path (str): Path to the input video file.
-        frame_rate (int): Frame extraction rate.
-        display_video (bool): Whether to display the video.
-        image_path (str): Path to save the images
-        store_video_path (str): Path to save the video.
-        model_type (str): Type of model to use ("detr" or "yolo").
-        model_size (str): Size of the model (for YOLO: 'n', 's', 'm', 'l', 'x').
+        args: Parsed command line arguments
+        
+    Raises:
+        SystemExit: If validation fails
     """
-    if model_type.lower() == "yolo":
-        print(f"Using YOLOv8{model_size.upper()} model for object detection...")
-        model = create_model(model_type, model_size)
-    else:
-        print(f"Using {model_type.upper()} model for object detection...")
-        model = create_model(model_type)
+    # Check video file exists
+    if not os.path.isfile(args.video_path):
+        print(f"Error: Video file '{args.video_path}' not found.", file=sys.stderr)
+        sys.exit(1)
     
-    # Print model information if available
-    if hasattr(model, 'get_model_info'):
-        info = model.get_model_info()
-        print(f"Model loaded: {info}")
+    # Check confidence threshold
+    if not 0 <= args.confidence <= 1:
+        print(f"Error: Confidence must be between 0 and 1, got {args.confidence}", file=sys.stderr)
+        sys.exit(1)
     
+    # Create output directory
+    os.makedirs(args.output, exist_ok=True)
+
+
+def process_video(
+    video_path: str,
+    model_type: str,
+    model_size: str,
+    confidence: float,
+    output_dir: str,
+    display: bool = False,
+    show_info: bool = False
+) -> None:
+    """
+    Process video with object detection.
+    
+    Args:
+        video_path: Path to input video
+        model_type: Type of model ('yolo' or 'detr')
+        model_size: Model size (for YOLO)
+        confidence: Confidence threshold
+        output_dir: Output directory
+        display: Whether to display video during processing
+        show_info: Whether to show frame info overlay
+    """
+    # Initialize model
+    print(f"🚀 Initializing {model_type.upper()} model...")
+    model = ModelFactory.create_model(
+        model_type=model_type,
+        model_size=model_size,
+        confidence_threshold=confidence
+    )
+    
+    # Print model info
+    model_info = model.get_model_info()
+    print(f"📋 Model: {model_info}")
+    
+    # Initialize drawer
     drawer = DetectionDrawer()
-    processor = FrameProcessor(model, drawer)
+    
+    # Open video
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise RuntimeError(f"Cannot open video: {video_path}")
+    
+    # Get video properties
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration = total_frames / fps
+    
+    print(f"📺 Video: {total_frames} frames, {fps:.2f} FPS, {width}x{height}, {duration:.2f}s")
+    
+    # Setup output video
+    video_name = Path(video_path).stem
+    output_path = os.path.join(output_dir, f"detected_{video_name}.mp4")
+    print(f"💾 Output video will be saved to: {output_path}")
+    
+    # Define codec and create VideoWriter
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    
+    # Processing statistics
+    frame_count = 0
+    total_detections = 0
+    processing_times = []
+    
+    print("🔍 Processing frames...")
+    
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            start_time = time.time()
+            
+            # Detect objects
+            detections = model.detect_objects(frame)
+            detections.frame_id = frame_count
+            
+            # Draw detections
+            frame_with_detections = drawer.draw_detections(
+                frame, 
+                detections,
+                show_confidence=True
+            )
+            
+            # Optionally draw frame info
+            if show_info:
+                frame_with_detections = drawer.draw_frame_info(
+                    frame_with_detections, 
+                    detections,
+                    "top-left"
+                )
+            
+            # Write frame to output video
+            out.write(frame_with_detections)
+            
+            # Update statistics
+            frame_count += 1
+            total_detections += detections.detection_count
+            processing_times.append(detections.processing_time)
+            
+            # Print progress
+            if frame_count % 30 == 0:
+                progress = (frame_count / total_frames) * 100
+                avg_time = sum(processing_times[-30:]) / min(30, len(processing_times))
+                print(f"  Frame {frame_count:4d} ({progress:5.1f}%): "
+                      f"{detections.detection_count} detections, "
+                      f"avg {avg_time:.3f}s/frame")
+            
+            # Display if requested
+            if display:
+                cv2.imshow('Object Detection', frame_with_detections)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+    
+    finally:
+        # Cleanup
+        cap.release()
+        out.release()
+        if display:
+            cv2.destroyAllWindows()
+    
+    # Print final statistics
+    avg_processing_time = sum(processing_times) / len(processing_times)
+    avg_detections_per_frame = total_detections / frame_count
+    
+    print("\n✅ Processing complete!")
+    print(f"📊 Summary:")
+    print(f"   - Processed {frame_count} frames")
+    print(f"   - Total detections: {total_detections}")
+    print(f"   - Average detections per frame: {avg_detections_per_frame:.2f}")
+    print(f"   - Average processing time: {avg_processing_time:.3f}s/frame")
+    print(f"   - Output saved to: {output_path}")
 
-    fps, frames, audio = processor.extract_video_fragments(video_path, frame_rate)
-    for idx, frame in enumerate(frames):
-        processor.process_frame(frame, idx, display_video, image_path)
 
-    output_video_path, output_video_and_audio_path = processor.compile_video(frames, store_video_path, fps, audio)
+def main() -> None:
+    """Main application entry point."""
+    parser = create_argument_parser()
+    args = parser.parse_args()
+    
+    validate_arguments(args)
+    
+    try:
+        process_video(
+            video_path=args.video_path,
+            model_type=args.model,
+            model_size=args.model_size,
+            confidence=args.confidence,
+            output_dir=args.output,
+            display=args.display,
+            show_info=args.info
+        )
+    except KeyboardInterrupt:
+        print("\n⏹️  Processing interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n❌ Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    if display_video and output_video_path:
-        _open_video(output_video_path, output_video_and_audio_path)
-
-def _open_video(output_video_path, output_video_and_audio_path):
-    print(f"Opening video: {output_video_path} and {output_video_and_audio_path}")
-    # Detect the operating system
-    if platform.system() == 'Windows':
-        print("Windows")
-        os.startfile(output_video_path)  # Windows
-        os.startfile(output_video_and_audio_path)  # Windows
-    elif platform.system() == 'Darwin':  # macOS
-        print("macOS")
-        subprocess.run(['open', output_video_path])
-        subprocess.run(['open', output_video_and_audio_path])
-    else:  # Assume Linux or other Unix-like OS
-        print("Linux")
-        subprocess.run(['xdg-open', output_video_path])
-        subprocess.run(['xdg-open', output_video_and_audio_path])
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Object Detection in Video")
-    parser.add_argument("video_path", type=str, help="Path to the input video file.")
-    parser.add_argument("--frame_rate", type=int, default=1, help="Frame extraction rate per ms.")
-    parser.add_argument("--display_video", type=bool, default=False, help="Display Video.")
-    parser.add_argument("--store_video_path", type=str, default=None, help="Save Final Video.")
-    parser.add_argument("--store_image_path", type=str, default=None, help="Save Images.")
-    parser.add_argument("--model", type=str, choices=["detr", "yolo"], default="detr", 
-                        help="Model to use for object detection. Options: 'detr' (Facebook DETR) or 'yolo' (YOLOv8)")
-    parser.add_argument("--model_size", type=str, choices=["n", "s", "m", "l", "x"], default="n",
-                        help="Size of YOLOv8 model (ignored for DETR). Options: 'n' (nano), 's' (small), 'm' (medium), 'l' (large), 'x' (extra large)")
-    args = parser.parse_args()
-
-    main(args.video_path, args.frame_rate, args.display_video, args.store_image_path, args.store_video_path, args.model, args.model_size)
+    main()
