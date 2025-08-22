@@ -104,44 +104,115 @@ classDiagram
 ## System Architecture
 
 ```mermaid
-flowchart TB
-    subgraph "Frontend Layer"
-        CLI[CLI Interface]
-        VI[Video Input]
-    end
-    
-    subgraph "Core Processing"
-        MA[Main Application]
-        DD[Detection Drawer]
-        MF[Model Factory]
-    end
-    
-    subgraph "Model Layer"
-        YM[YOLOv8 Model]
-        DM[DETR Model]
-        BM[Base Model Interface]
-    end
-    
-    subgraph "Storage Layer"
-        VO[Video Output]
-        ST[Statistics]
+flowchart TD
+    %% Input Layer
+    subgraph Input ["📥 Input Layer"]
+        VideoFile["🎥 Video File<br/>(MP4, AVI, MOV)"]
+        Webcam["📹 Webcam Stream<br/>(Real-time)"]
+        ImageFile["🖼️ Image File<br/>(JPG, PNG)"]
     end
 
-    CLI --> MA
-    VI --> MA
-    MA --> MF
-    MA --> DD
-    MF --> YM
-    MF --> DM
-    YM --> BM
-    DM --> BM
-    MA --> VO
-    MA --> ST
+    %% Configuration Layer
+    subgraph Config ["⚙️ Configuration Layer"]
+        ConfigFile["📄 config.py<br/>Model Settings<br/>Processing Params"]
+        DetectionConfig["🎯 Detection Config<br/>Confidence Threshold<br/>Model Type"]
+        OutputConfig["📤 Output Config<br/>Save Path<br/>Format Settings"]
+    end
+
+    %% Core Processing Engine
+    subgraph Core ["🔧 Core Processing Engine"]
+        FrameProcessor["⚡ FrameProcessor<br/>frame_processor.py<br/>- Video Loading<br/>- Frame Extraction<br/>- Batch Processing"]
+        
+        ModelFactory["🏭 ModelFactory<br/>model.py<br/>- YOLO Creation<br/>- DETR Creation<br/>- Model Loading"]
+        
+        YOLOModel["🤖 YOLO Model<br/>- YOLOv8n/s/m/l/x<br/>- Real-time Detection<br/>- High Performance"]
+        
+        DETRModel["🧠 DETR Model<br/>- Transformer Based<br/>- High Accuracy<br/>- Research Grade"]
+    end
+
+    %% Detection Pipeline
+    subgraph Detection ["🔍 Detection Pipeline"]
+        PreProcess["🔄 Preprocessing<br/>- Resize Frames<br/>- Normalize Data<br/>- Format Conversion"]
+        
+        Inference["⚡ Model Inference<br/>- Object Detection<br/>- Bounding Boxes<br/>- Confidence Scores"]
+        
+        PostProcess["📊 Post-processing<br/>- NMS Filtering<br/>- Confidence Filter<br/>- Result Formatting"]
+    end
+
+    %% Output Layer
+    subgraph Output ["📤 Output Layer"]
+        Drawer["🎨 Drawer<br/>drawer.py<br/>- Bounding Boxes<br/>- Labels & Scores<br/>- Color Coding"]
+        
+        VideoOutput["🎬 Processed Video<br/>- Annotated Frames<br/>- Detection Results<br/>- Saved Output"]
+        
+        JSONOutput["📋 JSON Results<br/>- Detection Data<br/>- Timestamps<br/>- Metadata"]
+        
+        Display["🖥️ Real-time Display<br/>- Live Preview<br/>- Progress Updates<br/>- Status Info"]
+    end
+
+    %% Data Transfer Objects
+    subgraph DTO ["📦 Data Transfer Objects"]
+        DetectionDTO["🏷️ DetectionResult<br/>- bbox: BoundingBox<br/>- confidence: float<br/>- label: str<br/>- timestamp: float"]
+        
+        BboxDTO["📐 BoundingBox<br/>- x1, y1: int<br/>- x2, y2: int<br/>- width, height: int"]
+        
+        VideoDTO["🎞️ VideoMetadata<br/>- fps: int<br/>- duration: float<br/>- dimensions: tuple<br/>- frame_count: int"]
+    end
+
+    %% Main Application Entry
+    subgraph App ["🚀 Application Entry"]
+        MainApp["📱 main.py<br/>- CLI Interface<br/>- Process Orchestration<br/>- Error Handling"]
+    end
+
+    %% Data Flow Connections
+    VideoFile --> FrameProcessor
+    Webcam --> FrameProcessor
+    ImageFile --> FrameProcessor
     
-    style MA fill:#ffeb3b
-    style MF fill:#4caf50
-    style YM fill:#2196f3
-    style DM fill:#9c27b0
+    ConfigFile --> ModelFactory
+    ConfigFile --> FrameProcessor
+    DetectionConfig --> ModelFactory
+    OutputConfig --> Drawer
+    
+    MainApp --> FrameProcessor
+    MainApp --> ModelFactory
+    MainApp --> Drawer
+    
+    FrameProcessor --> PreProcess
+    ModelFactory --> YOLOModel
+    ModelFactory --> DETRModel
+    
+    PreProcess --> Inference
+    YOLOModel --> Inference
+    DETRModel --> Inference
+    
+    Inference --> PostProcess
+    PostProcess --> DetectionDTO
+    DetectionDTO --> BboxDTO
+    
+    DetectionDTO --> Drawer
+    VideoDTO --> Drawer
+    
+    Drawer --> VideoOutput
+    Drawer --> Display
+    PostProcess --> JSONOutput
+
+    %% Styling
+    classDef inputClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef configClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef coreClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef detectionClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef outputClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef dtoClass fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    classDef appClass fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+
+    class VideoFile,Webcam,ImageFile inputClass
+    class ConfigFile,DetectionConfig,OutputConfig configClass
+    class FrameProcessor,ModelFactory,YOLOModel,DETRModel coreClass
+    class PreProcess,Inference,PostProcess detectionClass
+    class Drawer,VideoOutput,JSONOutput,Display outputClass
+    class DetectionDTO,BboxDTO,VideoDTO dtoClass
+    class MainApp appClass
 ```
 
 ## Data Flow Diagram

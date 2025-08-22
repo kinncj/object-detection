@@ -11,12 +11,17 @@ dependencies:
   - numpy
   - opencv
   - pillow
+  - tqdm
+  - requests
+  - imageio
+  - imageio-ffmpeg
+  - decorator=4.4.2
+  - moviepy=1.0.3
+  - proglog
   - pip
   - pip:
     - transformers>=4.20.0
     - ultralytics>=8.0.0
-    - pydub>=0.25.0
-    - moviepy>=1.0.3
     # Development dependencies
     - pytest>=7.0.0
     - pytest-cov>=4.0.0

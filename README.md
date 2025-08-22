@@ -19,7 +19,24 @@ A modern, high-performance object detection application supporting multiple stat
 
 ## 🛠️ Installation
 
-### Quick Setup (Recommended)
+### Option 1: Using Conda (Recommended - Best Compatibility)
+
+This is the **recommended approach** as conda manages dependencies better for this project:
+
+```bash
+# Clone the repository
+git clone <repository_url>
+cd object-detection
+
+# Create and activate conda environment
+conda env create -f environment.yml
+conda activate object-detection
+
+# Test the installation
+python main.py tests/test_video.mp4 --display
+```
+
+### Option 2: Quick Setup Script
 
 ```bash
 # Clone the repository
@@ -32,22 +49,9 @@ chmod +x setup.sh
 
 # Activate the environment  
 conda activate object-detection
-
-# Test the installation
-python main.py tests/test_video.mp4 --display
 ```
 
-### Manual Setup
-
-#### Option 1: Using Conda (Recommended)
-
-```bash
-# Create and activate conda environment
-conda env create -f environment.yml
-conda activate object-detection
-```
-
-#### Option 2: Using pip
+### Option 3: Using pip (Alternative)
 
 ```bash
 # Create virtual environment
@@ -56,6 +60,56 @@ source object-detection-env/bin/activate  # On Windows: object-detection-env\Scr
 
 # Install dependencies
 pip install -r requirements.txt
+```
+
+**Note**: If you encounter dependency issues with pip (especially with moviepy or decorator), use the conda installation method instead.
+
+## 🔧 Troubleshooting
+
+### Common Issues and Solutions
+
+#### 1. MoviePy Import Errors
+If you get `ModuleNotFoundError: No module named 'moviepy.video.fx.FadeIn'` or similar:
+
+```bash
+# Solution: Use specific working versions
+pip uninstall moviepy decorator -y
+pip install moviepy==1.0.3 decorator==4.4.2
+
+# Or better: switch to conda
+conda install -c conda-forge moviepy=1.0.3 decorator=4.4.2
+```
+
+#### 2. Dependency Conflicts
+If you have pip dependency conflicts:
+
+```bash
+# Clean install with conda (recommended)
+conda env remove -n object-detection
+conda env create -f environment.yml
+conda activate object-detection
+```
+
+#### 3. CUDA/GPU Issues
+If GPU acceleration isn't working:
+
+```bash
+# Check GPU availability
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+
+# Reinstall PyTorch with CUDA support
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+```
+
+#### 4. Test Failures
+If tests are failing:
+
+```bash
+# Run core tests only (should always pass)
+python -m pytest tests/test_base.py tests/test_config.py tests/test_drawer.py tests/test_factory.py -v
+
+# Check environment setup
+python -c "from moviepy.editor import VideoFileClip; print('moviepy.editor works')"
 ```
 
 ## 🎯 Quick Start

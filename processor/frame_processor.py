@@ -72,6 +72,8 @@ class FrameProcessor:
 
         frames = []
         fps = cap.get(cv2.CAP_PROP_FPS)
+        if fps <= 0:  # Safety check for invalid fps
+            fps = 30.0  # Default to 30 fps
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         print(f"Extracting frames every {frame_rate} milliseconds")

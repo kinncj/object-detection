@@ -45,7 +45,8 @@ exclude = '''
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_functions = "test_*"
-addopts = "--cov=. --cov-report=html --cov-report=term-missing --cov-exclude=setup.py"
+addopts = "-v --tb=short"
+# Note: Coverage disabled for now to focus on basic functionality
 
 [tool.mypy]
 python_version = "3.9"

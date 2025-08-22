@@ -40,6 +40,10 @@ echo "🔄 Activating environment..."
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate $ENV_NAME
 
+# Install critical dependencies that work better via conda
+echo "📦 Installing critical dependencies via conda for best compatibility..."
+conda install -n $ENV_NAME -c conda-forge decorator=4.4.2 moviepy=1.0.3 -y
+
 # Verify installation
 echo "✅ Verifying installation..."
 python -c "
@@ -48,9 +52,11 @@ try:
     import transformers
     import cv2
     import ultralytics
+    from moviepy.editor import VideoFileClip
     print('✅ All core dependencies imported successfully')
     print(f'PyTorch version: {torch.__version__}')
     print(f'CUDA available: {torch.cuda.is_available()}')
+    print('✅ moviepy.editor import successful')
 except ImportError as e:
     print(f'❌ Import error: {e}')
     exit(1)
@@ -63,6 +69,9 @@ echo "🎯 To activate the environment:"
 echo "   conda activate $ENV_NAME"
 echo ""
 echo "🚀 Quick start commands:"
+echo "   # Test the installation"
+echo "   python main.py tests/test_video.mp4 --display"
+echo ""
 echo "   # Basic detection with YOLOv8 nano (fastest)"
 echo "   python main.py path/to/video.mp4"
 echo ""
@@ -76,10 +85,8 @@ echo "   # Real-time display with info overlay"
 echo "   python main.py path/to/video.mp4 --display --info"
 echo ""
 echo "🧪 Run tests:"
-echo "   cd tests/"
-echo "   python test_architecture.py    # Test core architecture"
-echo "   python test_simple.py         # Basic functionality test"
-echo "   python test_yolo_integration.py  # YOLO integration test"
+echo "   python -m pytest tests/ -v    # Run all tests"
+echo "   python -m pytest tests/test_base.py tests/test_config.py tests/test_drawer.py tests/test_factory.py -v    # Core tests"
 echo ""
 echo "📊 Performance expectations (based on 702-frame test video):"
 echo "   YOLOv8n: ~19 FPS, 1.2 detections/frame (real-time)"
@@ -90,8 +97,6 @@ echo "   - Use YOLOv8n for real-time applications"
 echo "   - Use DETR for detailed analysis and research"
 echo "   - GPU acceleration detected: $(python -c 'import torch; print(torch.cuda.is_available())')"
 echo ""
-echo "To update the environment:"
-echo "   conda env update -f environment.yml"
-echo ""
-echo "To export current environment:"
-echo "   conda env export > environment.yml"
+echo "⚙️  Environment management:"
+echo "   conda env update -f environment.yml     # Update environment"
+echo "   conda env export > environment.yml      # Export current environment"
