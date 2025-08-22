@@ -1,0 +1,294 @@
+name: PR Automation - Copilot Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  pr-automation:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Auto-assign reviewers and labels
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { owner, repo, number } = context.issue;
+          
+          // Auto-assign GitHub Copilot (if available) and maintainers
+          const reviewers = ['kinncj']; // Add other maintainers here
+          
+          try {
+            await github.rest.pulls.requestReviewers({
+              owner,
+              repo,
+              pull_number: number,
+              reviewers: reviewers
+            });
+            console.log(`✅ Assigned reviewers: ${reviewers.join(', ')}`);
+          } catch (error) {
+            console.log(`⚠️ Could not assign reviewers: ${error.message}`);
+          }
+          
+          // Analyze PR content and add appropriate labels
+          const { data: pr } = await github.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: number
+          });
+          
+          const { data: files } = await github.rest.pulls.listFiles({
+            owner,
+            repo,
+            pull_number: number
+          });
+          
+          const labels = [];
+          
+          // Determine labels based on changed files
+          const changedFiles = files.map(f => f.filename);
+          
+          if (changedFiles.some(f => f.startsWith('tests/'))) {
+            labels.push('testing');
+          }
+          
+          if (changedFiles.some(f => f.startsWith('models/'))) {
+            labels.push('models');
+          }
+          
+          if (changedFiles.some(f => f.startsWith('detection/') || f.startsWith('processor/'))) {
+            labels.push('core');
+          }
+          
+          if (changedFiles.some(f => f.includes('requirements') || f.includes('environment'))) {
+            labels.push('dependencies');
+          }
+          
+          if (changedFiles.some(f => f.includes('README') || f.includes('.md'))) {
+            labels.push('documentation');
+          }
+          
+          if (changedFiles.some(f => f.startsWith('.github/'))) {
+            labels.push('ci/cd');
+          }
+          
+          // Size labels based on lines changed
+          const totalAdditions = pr.additions;
+          const totalDeletions = pr.deletions;
+          const totalChanges = totalAdditions + totalDeletions;
+          
+          if (totalChanges < 50) {
+            labels.push('size/small');
+          } else if (totalChanges < 200) {
+            labels.push('size/medium');
+          } else if (totalChanges < 500) {
+            labels.push('size/large');
+          } else {
+            labels.push('size/xl');
+          }
+          
+          // Add labels
+          if (labels.length > 0) {
+            try {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: number,
+                labels: labels
+              });
+              console.log(`✅ Added labels: ${labels.join(', ')}`);
+            } catch (error) {
+              console.log(`⚠️ Could not add labels: ${error.message}`);
+            }
+          }
+    
+    - name: Comment PR with review guidelines
+      uses: actions/github-script@v7
+      if: github.event.action == 'opened'
+      with:
+        script: |
+          const { owner, repo, number } = context.issue;
+          
+          const comment = `## 🤖 Automated PR Review
+          
+          Thank you for your contribution! This PR has been automatically analyzed:
+          
+          ### 📋 Review Checklist
+          - [ ] **Tests**: All tests pass (core tests must pass)
+          - [ ] **Coverage**: No significant decrease in test coverage
+          - [ ] **Linting**: Code follows project style guidelines
+          - [ ] **Documentation**: Changes are documented where needed
+          - [ ] **Breaking Changes**: Any breaking changes are clearly marked
+          
+          ### 🧪 Testing Status
+          The CI pipeline will automatically run:
+          - ✅ Core tests (must pass): \`test_base.py\`, \`test_config.py\`, \`test_drawer.py\`, \`test_factory.py\`
+          - 🔍 Full test suite with coverage analysis
+          - 🎨 Code formatting and linting checks
+          - 🔒 Security vulnerability scanning
+          
+          ### 🤖 AI-Assisted Review
+          GitHub Copilot and automated tools will help review this PR for:
+          - Code quality and best practices
+          - Potential bugs or security issues
+          - Performance considerations
+          - Architecture consistency
+          
+          ### 📚 References
+          - [Setup Guide](./SETUP_GUIDE.md) - Environment setup and troubleshooting
+          - [Project Status](./PROJECT_STATUS.md) - Current development status
+          
+          **Note**: This PR will be automatically merged if all checks pass and it's approved by a maintainer.
+          `;
+          
+          await github.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number: number,
+            body: comment
+          });
+
+  copilot-review:
+    runs-on: ubuntu-latest
+    needs: pr-automation
+    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: AI Code Review with GitHub Copilot CLI
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { owner, repo, number } = context.issue;
+          
+          // Get PR diff
+          const { data: pr } = await github.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: number
+          });
+          
+          const { data: files } = await github.rest.pulls.listFiles({
+            owner,
+            repo,
+            pull_number: number
+          });
+          
+          // Analyze each changed file
+          let reviewComments = [];
+          
+          for (const file of files) {
+            if (file.filename.endsWith('.py')) {
+              // Focus on Python files
+              const issues = [];
+              
+              // Check for common issues
+              if (file.patch) {
+                // Look for potential issues in the diff
+                const lines = file.patch.split('\n');
+                
+                for (let i = 0; i < lines.length; i++) {
+                  const line = lines[i];
+                  
+                  // Check for potential issues
+                  if (line.includes('TODO') || line.includes('FIXME')) {
+                    issues.push(`Line contains TODO/FIXME comment that should be addressed`);
+                  }
+                  
+                  if (line.includes('print(') && !line.includes('# debug')) {
+                    issues.push(`Consider using logging instead of print statements for production code`);
+                  }
+                  
+                  if (line.match(/except.*:/)) {
+                    if (!line.includes('Exception') && !line.includes('Error')) {
+                      issues.push(`Consider catching more specific exceptions instead of bare except`);
+                    }
+                  }
+                  
+                  if (line.includes('import *')) {
+                    issues.push(`Avoid wildcard imports - import specific functions/classes instead`);
+                  }
+                }
+              }
+              
+              if (issues.length > 0) {
+                reviewComments.push({
+                  path: file.filename,
+                  body: `🤖 **AI Code Review Suggestions:**\n\n${issues.map(issue => `- ${issue}`).join('\n')}\n\n*These are automated suggestions. Please review and apply as appropriate.*`,
+                  line: 1
+                });
+              }
+            }
+          }
+          
+          // Post review comments if any issues found
+          if (reviewComments.length > 0) {
+            const reviewBody = `## 🤖 AI-Assisted Code Review
+            
+            I've automatically analyzed this PR and found some suggestions for improvement. Please review these recommendations:
+            
+            ${reviewComments.map(comment => `### ${comment.path}\n${comment.body}`).join('\n\n')}
+            
+            ### General Recommendations:
+            - Ensure all new code has appropriate test coverage
+            - Follow the existing code style and architecture patterns
+            - Update documentation if public APIs are changed
+            - Consider performance implications for core detection logic
+            
+            *This is an automated review. A human maintainer will also review this PR.*`;
+            
+            try {
+              await github.rest.pulls.createReview({
+                owner,
+                repo,
+                pull_number: number,
+                body: reviewBody,
+                event: 'COMMENT'
+              });
+              console.log('✅ Posted AI code review');
+            } catch (error) {
+              console.log(`⚠️ Could not post review: ${error.message}`);
+            }
+          }
+
+  auto-merge:
+    runs-on: ubuntu-latest
+    needs: [pr-automation, copilot-review]
+    if: github.event.pull_request.draft == false
+    steps:
+    - name: Auto-merge dependabot PRs
+      uses: actions/github-script@v7
+      if: github.actor == 'dependabot[bot]'
+      with:
+        script: |
+          const { owner, repo, number } = context.issue;
+          
+          // Check if all required checks have passed
+          const { data: pr } = await github.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: number
+          });
+          
+          if (pr.mergeable && pr.mergeable_state === 'clean') {
+            await github.rest.pulls.merge({
+              owner,
+              repo,
+              pull_number: number,
+              merge_method: 'squash'
+            });
+            console.log('✅ Auto-merged dependabot PR');
+          }

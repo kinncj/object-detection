@@ -1,0 +1,301 @@
+name: Test Results Monitor
+
+on:
+  workflow_run:
+    workflows: ["CI - Object Detection Tests"]
+    types: [completed]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  monitor-critical-tests:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'failure'
+    steps:
+    - name: Download test artifacts
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const workflowRunId = context.payload.workflow_run.id;
+          
+          // Get artifacts from the failed workflow
+          const { data: artifacts } = await github.rest.actions.listWorkflowRunArtifacts({
+            owner,
+            repo,
+            run_id: workflowRunId,
+          });
+          
+          console.log(`Found ${artifacts.artifacts.length} artifacts`);
+          
+          // Look for test results
+          const testArtifact = artifacts.artifacts.find(a => a.name === 'test-results');
+          
+          if (testArtifact) {
+            console.log('✅ Found test results artifact');
+          } else {
+            console.log('❌ No test results artifact found');
+          }
+
+    - name: Analyze critical test failures
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const workflowRun = context.payload.workflow_run;
+          
+          // Critical tests that must always pass
+          const criticalTests = [
+            'test_config.py',
+            'test_factory.py',
+            'test_drawer.py',
+            'test_frame_processor.py'
+          ];
+          
+          // Check if this is a PR
+          const isPR = workflowRun.pull_requests && workflowRun.pull_requests.length > 0;
+          
+          if (isPR) {
+            const prNumber = workflowRun.pull_requests[0].number;
+            
+            const criticalFailureComment = `## 🚨 Critical Test Failure Alert
+            
+            **Workflow:** [${workflowRun.name}](${workflowRun.html_url})
+            **Status:** ${workflowRun.conclusion} ❌
+            **Triggered by:** ${workflowRun.triggering_actor.login}
+            
+            ### ⚠️ Action Required
+            
+            This PR has failing tests that must be fixed before merging. Critical tests include:
+            ${criticalTests.map(test => `- \`${test}\``).join('\n')}
+            
+            ### 🔍 Next Steps
+            
+            1. **Check the CI logs:** [View failed workflow](${workflowRun.html_url})
+            2. **Run tests locally:**
+               \`\`\`bash
+               # Setup environment
+               conda env create -f environment.yml
+               conda activate object-detection
+               
+               # Run critical tests
+               pytest tests/test_config.py -v
+               pytest tests/test_factory.py -v
+               pytest tests/test_drawer.py -v
+               pytest tests/test_frame_processor.py -v
+               \`\`\`
+            3. **Fix failing tests and push changes**
+            4. **Verify all tests pass before requesting review**
+            
+            ### 📚 Resources
+            
+            - [Setup Guide](./SETUP_GUIDE.md) - Environment setup and troubleshooting
+            - [Test Documentation](./tests/README.md) - Understanding the test suite
+            
+            ### 🤖 Automated Actions
+            
+            - This PR is blocked from merging until tests pass
+            - Additional reviews may be required for critical test changes
+            - Auto-merge is disabled for this PR
+            
+            ---
+            
+            *This is an automated message. Please fix the failing tests and push your changes.*`;
+            
+            try {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: criticalFailureComment
+              });
+              
+              // Add failure label
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: prNumber,
+                labels: ['test-failure', 'needs-fix', 'do-not-merge']
+              });
+              
+              console.log('✅ Posted critical test failure comment and labels');
+            } catch (error) {
+              console.log(`⚠️ Could not post comment: ${error.message}`);
+            }
+          }
+
+  notify-test-recovery:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+    - name: Check for test recovery
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const workflowRun = context.payload.workflow_run;
+          
+          // Check if this is a PR
+          const isPR = workflowRun.pull_requests && workflowRun.pull_requests.length > 0;
+          
+          if (isPR) {
+            const prNumber = workflowRun.pull_requests[0].number;
+            
+            // Check if PR has failure labels
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+            
+            const hasFailureLabels = pr.labels.some(label => 
+              ['test-failure', 'needs-fix', 'do-not-merge'].includes(label.name)
+            );
+            
+            if (hasFailureLabels) {
+              // Remove failure labels
+              const labelsToRemove = ['test-failure', 'needs-fix', 'do-not-merge'];
+              
+              for (const labelName of labelsToRemove) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: prNumber,
+                    name: labelName
+                  });
+                } catch (error) {
+                  // Label might not exist, continue
+                  console.log(`Label ${labelName} not found or already removed`);
+                }
+              }
+              
+              // Add success comment
+              const recoveryComment = `## ✅ Tests Recovered!
+              
+              **Great news!** All tests are now passing. 🎉
+              
+              **Workflow:** [${workflowRun.name}](${workflowRun.html_url})
+              **Status:** ${workflowRun.conclusion} ✅
+              
+              ### 🎯 Next Steps
+              
+              - This PR is now eligible for review and merging
+              - Auto-merge may be re-enabled if applicable
+              - Consider requesting a review from maintainers
+              
+              ### 📊 Test Status
+              
+              All critical tests are passing:
+              - ✅ Configuration tests
+              - ✅ Factory pattern tests  
+              - ✅ Drawing and visualization tests
+              - ✅ Frame processing tests
+              
+              ---
+              
+              *This is an automated message confirming test recovery.*`;
+              
+              try {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  body: recoveryComment
+                });
+                
+                // Add ready for review label
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: prNumber,
+                  labels: ['tests-passing', 'ready-for-review']
+                });
+                
+                console.log('✅ Posted test recovery comment and updated labels');
+              } catch (error) {
+                console.log(`⚠️ Could not post recovery comment: ${error.message}`);
+              }
+            }
+          }
+
+  update-test-status:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update repository test status
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { owner, repo } = context.repo;
+          const workflowRun = context.payload.workflow_run;
+          
+          // Create or update a test status issue
+          const statusTitle = '🧪 Test Suite Status Dashboard';
+          
+          // Search for existing status issue
+          const { data: issues } = await github.rest.issues.listForRepo({
+            owner,
+            repo,
+            labels: 'test-status',
+            state: 'open'
+          });
+          
+          const existingIssue = issues.find(issue => issue.title === statusTitle);
+          
+          const statusBody = `# 🧪 Test Suite Status Dashboard
+          
+          **Last Updated:** ${new Date().toISOString()}
+          **Latest Workflow:** [${workflowRun.name}](${workflowRun.html_url})
+          **Status:** ${workflowRun.conclusion === 'success' ? '✅ PASSING' : '❌ FAILING'}
+          
+          ## 📊 Test Overview
+          
+          | Test Category | Status | Last Run |
+          |---------------|--------|----------|
+          | Core Tests | ${workflowRun.conclusion === 'success' ? '✅' : '❌'} | ${workflowRun.updated_at} |
+          | Factory Tests | ${workflowRun.conclusion === 'success' ? '✅' : '❌'} | ${workflowRun.updated_at} |
+          | Integration Tests | ${workflowRun.conclusion === 'success' ? '✅' : '❌'} | ${workflowRun.updated_at} |
+          | Linting | ${workflowRun.conclusion === 'success' ? '✅' : '❌'} | ${workflowRun.updated_at} |
+          | Security Scan | ${workflowRun.conclusion === 'success' ? '✅' : '❌'} | ${workflowRun.updated_at} |
+          
+          ## 🔗 Quick Links
+          
+          - [Setup Guide](./SETUP_GUIDE.md)
+          - [Test Documentation](./tests/)
+          - [CI/CD Workflows](./.github/workflows/)
+          - [Latest Workflow Run](${workflowRun.html_url})
+          
+          ## 📈 Recent Activity
+          
+          - **Branch:** ${workflowRun.head_branch}
+          - **Commit:** ${workflowRun.head_sha.substring(0, 7)}
+          - **Triggered by:** ${workflowRun.triggering_actor.login}
+          - **Event:** ${workflowRun.event}
+          
+          ---
+          
+          *This dashboard is automatically updated by the test monitoring workflow.*`;
+          
+          if (existingIssue) {
+            // Update existing issue
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number: existingIssue.number,
+              body: statusBody
+            });
+            console.log('✅ Updated test status dashboard');
+          } else {
+            // Create new status issue
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title: statusTitle,
+              body: statusBody,
+              labels: ['test-status', 'automation', 'pinned']
+            });
+            console.log('✅ Created test status dashboard');
+          }

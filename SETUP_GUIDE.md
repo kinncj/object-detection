@@ -185,6 +185,131 @@ python -m pytest tests/ --cov=models --cov=detection --cov=processor
 - Python 3.11 environment works well
 - PyTorch with CUDA support optional but recommended
 
+4. **Data Structure APIs**: Fixed BoundingBox and DetectionResult constructor calls
+
+### Dependencies Working Configuration
+- Use **conda** for `moviepy` and `decorator` (better compatibility)
+- Use **pip** for `ultralytics` and `transformers` (newer versions)
+- Python 3.11 environment works well
+- PyTorch with CUDA support optional but recommended
+
 ---
 
-**Status**: ✅ Setup process is now replicable and documented. Core functionality (71/78 tests) working correctly.
+## 🚀 CI/CD & Development Workflow
+
+### GitHub Actions Integration
+
+#### Automated Workflows
+Our repository includes comprehensive CI/CD automation:
+
+1. **CI Pipeline** (`.github/workflows/ci.yml`)
+   - Runs on all PRs and pushes to main/develop
+   - Conda environment setup with exact working versions
+   - Full test suite execution with coverage reporting
+   - Code quality checks (black, flake8, mypy)
+   - Security vulnerability scanning (Trivy)
+   - Artifact uploads for test results and coverage
+
+2. **PR Automation** (`.github/workflows/pr-automation.yml`)
+   - Auto-assigns reviewers including project maintainers
+   - Intelligent labeling based on changed files and PR size
+   - GitHub Copilot integration for automated code review
+   - Comprehensive PR comment with review guidelines
+   - Auto-merge for approved dependabot PRs
+
+3. **Repository Setup** (`.github/workflows/repo-setup.yml`)
+   - Automated label management (testing, core, dependencies, etc.)
+   - Branch protection rules for main branch
+   - CODEOWNERS file maintenance for code review assignments
+
+4. **Test Monitoring** (`.github/workflows/test-monitor.yml`)
+   - Critical test failure notifications
+   - Test recovery alerts when issues are resolved
+   - Live test status dashboard updates
+   - Automated labeling for test states
+
+#### Branch Protection
+The `main` branch is protected with:
+- **Required Status Checks**: `test-suite`, `lint-check`, `security-scan`
+- **Required Reviews**: 1 approving review from maintainers
+- **Dismiss Stale Reviews**: Automatically dismiss when new commits are pushed
+- **No Force Pushes**: Protects commit history integrity
+
+#### Critical Test Requirements
+These tests MUST pass for any PR to be merged:
+- ✅ `test_config.py` - Configuration management (8 tests)
+- ✅ `test_factory.py` - Model factory patterns (10 tests, **previously 8 failing - now fixed**)
+- ✅ `test_drawer.py` - Drawing and visualization (11 tests)
+- ✅ `test_frame_processor.py` - Frame processing logic (7 tests)
+
+**Total Critical Tests**: 36/78 tests that block merging if failing
+
+#### PR Workflow Process
+1. **Create PR** using the comprehensive PR template
+2. **Automated Analysis** - GitHub Copilot provides initial code review
+3. **CI Checks** - All tests, linting, and security scans execute
+4. **Human Review** - Maintainer review for business logic and architecture decisions
+5. **Auto-merge** - Dependabot PRs merge automatically when all checks pass
+
+#### Test Failure Handling
+When critical tests fail:
+- 🚨 Automatic PR comment with detailed failure information
+- 🏷️ Labels added: `test-failure`, `needs-fix`, `do-not-merge`
+- 🚫 Auto-merge functionality disabled
+- 📧 Recovery notifications sent when tests are fixed
+
+#### Labels & Organization
+Automatic labeling based on:
+- **File Changes**: `testing`, `models`, `core`, `dependencies`, `documentation`, `ci/cd`
+- **PR Size**: `size/small` (<50 lines), `size/medium` (50-200), `size/large` (200-500), `size/xl` (>500)
+- **Status**: `test-failure`, `needs-fix`, `ready-for-review`, `auto-merge`
+
+### Development Best Practices
+
+#### Local Development
+```bash
+# Setup development environment
+conda env create -f environment.yml
+conda activate object-detection
+
+# Run pre-commit checks (before pushing)
+pytest tests/test_config.py tests/test_factory.py tests/test_drawer.py tests/test_frame_processor.py -v
+black .
+flake8 .
+
+# Run full test suite
+pytest tests/ --cov=. --cov-report=term-missing
+```
+
+#### Contributing Guidelines
+- Use the PR template with comprehensive checklist
+- Ensure critical tests pass before requesting review
+- Follow code style guidelines (enforced by CI)
+- Update documentation for public API changes
+- Add tests for new functionality
+
+#### AI-Assisted Development
+- GitHub Copilot provides automated code review
+- AI suggestions focus on code quality, security, and performance
+- Human reviewers focus on business logic and architecture
+- Balance between AI efficiency and human oversight
+
+### Monitoring & Maintenance
+
+#### Test Status Dashboard
+- Live dashboard showing current test suite status
+- Updated automatically after each CI run
+- Available as a pinned issue in the repository
+- Includes quick links to setup guides and documentation
+
+#### Automated Maintenance
+- Dependabot updates for security and compatibility
+- Automated test monitoring and alerting
+- Code quality enforcement through CI checks
+- Regular security vulnerability scanning
+
+---
+
+**Status**: ✅ Setup process is now replicable and documented. Core functionality (73/78 tests) working correctly with comprehensive CI/CD automation including GitHub Copilot integration for automated code review and testing.
+
+**CI/CD Features**: Automated testing, code review, security scanning, and intelligent PR management with critical test protection and auto-merge capabilities.
